@@ -1,9 +1,11 @@
 import time
+import datetime
 from classes.ClassPeople import People, new_person
 from classes.ClassDrinks import Drinks, new_drink
-from classes.ClassOrders import Orders, reciepts
+from classes.ClassOrders import Orders
+from classes.ClassReceipts import Receipts, create_receipts_list
 from file_handler.FileFunctions import load_file, save_json
-from file_handler.SQL import save_people_to_database, load_from_database, save_drinks_to_database
+from file_handler.SQL import save_people_to_database, load_from_database, save_drinks_to_database, save_receipts_to_database
 from menu.menu import make_menu
 
 
@@ -29,7 +31,7 @@ def update_List_of_drinks(dict_drinks):
 
 #initialise some variables
 rounds = True
-Reciepts_list=[]
+Receipts_list=[]
 List_of_people = []
 List_of_drinks = []
 List_of_orders = []
@@ -69,7 +71,7 @@ while run == True:
         "Remove drink",
         "Make order",
         "exit",
-        "print orders"])
+        "print todays orders"])
 
     if User_selection == "1":
         for person in List_of_people:  # prints all object ages
@@ -157,7 +159,7 @@ while run == True:
 
             Full_order=[]
             order_num = 1
-            for person in List_of_people: # print out preferred drinks of known people, then ask what drinks people in the round want, then create order objects for each person.
+            for person in List_of_people:  # print out preferred drinks of known people, then ask what drinks people in the round want, then create order objects for each person.
                 if person.name.capitalize() in roundies:
                     print("Drinks available")
                     print("Drink : Price")
@@ -167,20 +169,34 @@ while run == True:
                         i += 1
                     print(f"\n{person.name}'s preferences are : {person.preference}\n")  # print
 
-                    drink_index =int(input(f"Which drink does {person.name} want? USE NUMBER\n")) # ask       this could ask for an input of pairs(person:drink pairs), rather than needing to go through a list in a specific order.
-                    order_obj = Orders(person, List_of_drinks[drink_index])
+                    try:
+                        drink_index =int(input(f"Which drink does {person.name} want? USE NUMBER\n"))  # ask       this could ask for an input of pairs(person:drink pairs), rather than needing to go through a list in a specific order.
+                    except:
+                        print("encountered error, try again")
+                        continue
+                    order_obj = Orders(person, List_of_drinks[drink_index], order_num)
                     order_num += order_num
-                    Full_order.append(order_obj)#Full_order is a list of orders ... reciept
+                    Full_order.append(order_obj)  # Full_order is a list of orders in other words, a single receipt
+
+                    Receipts_list = create_receipts_list(Receipts_list, Full_order)
+                    print(Full_order)
+                    print(Receipts_list)
+                    print(Receipts_list[0].Full_order)
+
             time.sleep(2)
 
+            # the Full_order list is only needed once each order is made They are converted into the
+            # "Receipt" object class and put into the Receipts_list which will be retained for the runtime of the
+            # programme and put onto a db when programme ends
 
-            Reciepts_list.append(reciepts(len(Reciepts_list), Full_order))
+            # making the receipts with unique id
 
-            if(input("Would you like a reciept yes [Y], no [N]\n").capitalize() == "Y"):
-                print("reciept")
+
+            if(input("Would you like a receipt yes [Y], no [N]\n").capitalize() == "Y"):
+                print("receipt")
                 for order in Full_order:
                   print(f"{order.person.name}: {order.drink.name} , £{order.drink.price}")
-                a=str(Reciepts_list[-1].Total())
+                a=str(Receipts_list[-1].Total())
                 print("total £" + a)
 
             input("Press enter to continue")
@@ -200,15 +216,22 @@ while run == True:
         run = False
 
     elif User_selection == "10":
-        for Reciept in Reciepts_list:
-            for order in Full_order:
-              print(f"{order.person.name}: {order.drink.name}, {order.drink.price}\n")
-            print(f"total: {Reciept.Total}")
+        print("\n")
+        for Receipt in Receipts_list:
+            for order in Receipt.Full_order:
+                print(f"{Receipt.receipt_id} \n order number:{order.order_num}")
+                print(f"{order.person.name}: {order.drink.name}, {order.drink.price}\n")
+                total = Receipt.Total()
+                print(f"total: {total}")
+                print("______________________________________")
+            input("Press enter to continue")
 
 
     else:
         print("\nPlease input an integer which is on the menu")
         time.sleep(1.8)
+
+    save_receipts_to_database(Receipts_list)
 
 
 

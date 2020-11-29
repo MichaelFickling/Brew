@@ -7,7 +7,7 @@ class Drinks:
         return self.name
 
     def attributes(self):
-        attributes_list = ["name", "age", "preference"]
+        attributes_list = ["name", "price"]
         return attributes_list
 
 def new_drink(dict_drinks, List_of_drinks):
